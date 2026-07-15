@@ -18,8 +18,20 @@ function initOtel() {
   }
 
   try {
+    // Parse optional headers (format: "key=value,key2=value2")
+    const headers = {};
+    if (config.otel.headers) {
+      config.otel.headers.split(',').forEach((pair) => {
+        const idx = pair.indexOf('=');
+        if (idx !== -1) {
+          headers[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+        }
+      });
+    }
+
     const exporter = new OTLPTraceExporter({
       url: `${config.otel.endpoint}/v1/traces`,
+      headers,
     });
 
     sdk = new NodeSDK({

@@ -32,6 +32,8 @@ const config = {
   otel: {
     endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
     serviceName: process.env.OTEL_SERVICE_NAME || 'ms1-core-api',
+    // Format: "Authorization=Basic <base64>" — set for Grafana Cloud
+    headers: process.env.OTEL_EXPORTER_OTLP_HEADERS || '',
   },
 };
 
