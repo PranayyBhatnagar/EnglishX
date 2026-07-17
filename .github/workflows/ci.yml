@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -10,10 +10,6 @@ jobs:
   ms1-lint-test:
     name: ms1 — Lint & Test
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && 
-       contains(join(github.event.pull_request.changed_files.*.filename, ','), 'ms1-core-api/'))
     defaults:
       run:
         working-directory: ms1-core-api
@@ -30,10 +26,6 @@ jobs:
   ms2-lint-test:
     name: ms2 — Lint & Test
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' &&
-       contains(join(github.event.pull_request.changed_files.*.filename, ','), 'ms2-speech-agent/'))
     defaults:
       run:
         working-directory: ms2-speech-agent
@@ -48,10 +40,6 @@ jobs:
   frontend-lint-test:
     name: Frontend — Lint & Test
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' &&
-       contains(join(github.event.pull_request.changed_files.*.filename, ','), 'frontend/'))
     defaults:
       run:
         working-directory: frontend
@@ -66,16 +54,63 @@ jobs:
       - run: npm run lint || echo "Lint not configured yet"
       - run: npm test || echo "No tests yet"
 
-  docker-build:
-    name: Docker Build
+  docker-build-push:
+    name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: [ms1-lint-test, ms2-lint-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build ms1 image
-        run: docker build -t englishx-ms1:latest ./ms1-core-api
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build ms2 image
-        run: docker build -t englishx-ms2:latest ./ms2-speech-agent
+      - name: Build & push ms1 image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ms1-core-api
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/englishx-ms1:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/englishx-ms1:${{ github.sha }}
+
+      - name: Build & push ms2 image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ms2-speech-agent
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/englishx-ms2:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/englishx-ms2:${{ github.sha }}
+
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/englishx-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/englishx-frontend:${{ github.sha }}
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: docker-build-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd ~/EnglishX
+            bash infra/deploy.sh
