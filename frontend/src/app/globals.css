@@ -263,6 +263,14 @@ a:hover { color: var(--primary-300); }
   transition: all var(--transition-default);
 }
 
+.card h3 {
+  color: #ffffff !important;
+}
+
+.card p {
+  color: var(--text-secondary) !important;
+}
+
 .card-interactive:hover {
   border-color: var(--primary-500);
   box-shadow: var(--shadow-glow);

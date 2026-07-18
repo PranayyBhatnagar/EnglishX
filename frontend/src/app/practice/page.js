@@ -203,6 +203,14 @@ export default function PracticePage() {
   if (phase === 'select') {
     return (
       <div className={styles.page}>
+        <style>{`
+          .card h3 {
+            color: #ffffff !important;
+          }
+          .card p {
+            color: var(--text-secondary) !important;
+          }
+        `}</style>
         <div className="container">
           <div className={styles.selectHeader}>
             <h1>Choose Your Practice Mode</h1>
@@ -217,8 +225,8 @@ export default function PracticePage() {
                 disabled={processing}
               >
                 <div className={styles.modeIcon}>{mode.icon}</div>
-                <h3>{mode.label}</h3>
-                <p>{mode.desc}</p>
+                <h3 style={{ color: '#ffffff' }}>{mode.label}</h3>
+                <p style={{ color: 'var(--text-secondary)' }}>{mode.desc}</p>
               </button>
             ))}
           </div>
@@ -385,24 +393,29 @@ export default function PracticePage() {
               <div className={styles.msgBubble}>
                 {msg.role === 'user' && msg.word_confidences && msg.word_confidences.length > 0 ? (
                   <p>
-                    {msg.content.split(/\s+/).map((word, idx) => {
-                      const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").toLowerCase();
-                      const match = msg.word_confidences.find(w => w.word.toLowerCase() === cleanWord);
-                      if (match && match.confidence < 0.93) {
-                        const percent = Math.round(match.confidence * 100);
-                        const isDanger = match.confidence < 0.75;
-                        return (
-                          <span
-                            key={idx}
-                            className={`${styles.flaggedWord} ${isDanger ? styles.pronounceDanger : styles.pronounceWarning}`}
-                            title={`Acoustic Confidence: ${percent}%`}
-                          >
-                            {word}{' '}
-                          </span>
-                        );
-                      }
-                      return <span key={idx}>{word} </span>;
-                    })}
+                    {(() => {
+                      const words = msg.content.split(/\s+/);
+                      if (words.length === 0) return null;
+                      const elements = words.map((word, idx) => {
+                        const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").toLowerCase();
+                        const match = msg.word_confidences.find(w => w.word.toLowerCase() === cleanWord);
+                        if (match && match.confidence < 0.93) {
+                          const percent = Math.round(match.confidence * 100);
+                          const isDanger = match.confidence < 0.75;
+                          return (
+                            <span
+                              key={idx}
+                              className={`${styles.flaggedWord} ${isDanger ? styles.pronounceDanger : styles.pronounceWarning}`}
+                              title={`Acoustic Confidence: ${percent}%`}
+                            >
+                              {word}
+                            </span>
+                          );
+                        }
+                        return <span key={idx}>{word}</span>;
+                      });
+                      return elements.reduce((prev, curr) => [prev, ' ', curr]);
+                    })()}
                   </p>
                 ) : (
                   <p>{msg.content}</p>
