@@ -101,6 +101,33 @@ const emailService = {
   },
 
   async _send({ to, subject, html }) {
+    // 1. Send via Gmail / SMTP if configured
+    if (config.smtp.user && config.smtp.pass) {
+      try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: config.smtp.user,
+            pass: config.smtp.pass,
+          },
+        });
+
+        const result = await transporter.sendMail({
+          from: `EnglishX <${config.smtp.user}>`,
+          to,
+          subject,
+          html,
+        });
+
+        return { messageId: result.messageId, status: 'sent' };
+      } catch (err) {
+        console.error('Gmail SMTP send failed:', err.message);
+        throw new Error('Email delivery via Gmail failed');
+      }
+    }
+
+    // 2. Send via AWS SES if configured
     const fromEmail = config.aws.sesFromEmail;
     const isMocked = !sesClient || !config.aws.accessKeyId || config.aws.accessKeyId === 'your-access-key-id';
 
