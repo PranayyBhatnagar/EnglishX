@@ -68,13 +68,13 @@ router.post('/:id/audio-key', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Not your session' });
     }
 
-    const { turnIndex, s3Key } = req.body;
+    const { turnIndex, s3Key, role } = req.body;
 
     if (typeof turnIndex !== 'number' || !s3Key || typeof s3Key !== 'string') {
       return res.status(400).json({ error: 'turnIndex (number) and s3Key (string) are required' });
     }
 
-    await sessionRepository.addAudioKey(req.params.id, turnIndex, s3Key);
+    await sessionRepository.addAudioKey(req.params.id, turnIndex, s3Key, role || 'user');
     return res.json({ success: true });
   } catch (err) {
     if (err.message === 'Session not found') {

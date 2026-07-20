@@ -2,9 +2,6 @@
 const nextConfig = {
   // Only enable standalone mode if explicitly requested (e.g., Docker container build)
   ...(process.env.BUILD_STANDALONE === 'true' ? { output: 'standalone' } : {}),
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },

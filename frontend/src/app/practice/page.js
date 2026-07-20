@@ -51,7 +51,9 @@ export default function PracticePage() {
     try {
       const session = await startSession(token, { mode });
       setSessionId(session.id);
-      setSessionStart(Date.now());
+      // eslint-disable-next-line react-hooks/purity
+      const now = Date.now();
+      setSessionStart(now);
       setPhase('conversation');
 
       // Get initial AI greeting
@@ -62,6 +64,13 @@ export default function PracticePage() {
         learnerLevel: user?.overallLevel || 2,
         conversationHistory: [],
       });
+
+      if (result.agent_audio_s3_key) {
+        registerAudioKey(token, session.id, turnCountRef.current, result.agent_audio_s3_key, 'agent').catch(
+          (err) => console.warn('Failed to register agent audio key:', err)
+        );
+      }
+      turnCountRef.current += 1;
 
       setMessages([
         { role: 'ai', content: result.ai_reply },
@@ -95,10 +104,15 @@ export default function PracticePage() {
         turnIndex: turnCountRef.current,
       });
 
-      // Register the S3 audio key with ms1 (best-effort, non-blocking)
+      // Register the S3 audio keys with ms1 (best-effort, non-blocking)
       if (result.audio_s3_key) {
-        registerAudioKey(token, sessionId, turnCountRef.current, result.audio_s3_key).catch(
-          (err) => console.warn('Failed to register audio key:', err)
+        registerAudioKey(token, sessionId, turnCountRef.current, result.audio_s3_key, 'user').catch(
+          (err) => console.warn('Failed to register user audio key:', err)
+        );
+      }
+      if (result.agent_audio_s3_key) {
+        registerAudioKey(token, sessionId, turnCountRef.current, result.agent_audio_s3_key, 'agent').catch(
+          (err) => console.warn('Failed to register agent audio key:', err)
         );
       }
       turnCountRef.current += 1;
@@ -140,6 +154,12 @@ export default function PracticePage() {
         userId: user?.id,
         turnIndex: turnCountRef.current,
       });
+
+      if (result.agent_audio_s3_key) {
+        registerAudioKey(token, sessionId, turnCountRef.current, result.agent_audio_s3_key, 'agent').catch(
+          (err) => console.warn('Failed to register agent audio key:', err)
+        );
+      }
       turnCountRef.current += 1;
 
       setMessages(prev => [
@@ -299,7 +319,7 @@ export default function PracticePage() {
                               <span className={styles.detailBad}>{w.used}</span>
                               <span>→</span>
                               <span className={styles.detailGood}>{w.suggestion}</span>
-                              {w.context && <p className={styles.detailTip}>e.g. "{w.context}"</p>}
+                              {w.context && <p className={styles.detailTip}>e.g. &quot;{w.context}&quot;</p>}
                             </div>
                           ))}
                         </div>
@@ -386,7 +406,7 @@ export default function PracticePage() {
         {/* Messages */}
         <div className={styles.messages}>
           {messages.map((msg, i) => (
-            <div key={i} className={`${styles.message} ${msg.role === 'user' ? styles.userMsg : styles.aiMsg}`}>
+            <div key={`msg-${i}`} className={`${styles.message} ${msg.role === 'user' ? styles.userMsg : styles.aiMsg}`}>
               <div className={styles.msgAvatar}>
                 {msg.role === 'user' ? user?.name?.charAt(0) || 'U' : '✦'}
               </div>

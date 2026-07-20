@@ -23,13 +23,12 @@ export default function AudioPlayer({ presignedUrl, label, compact = false }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Reset when URL changes
+  // Reset playback state when URL changes
   useEffect(() => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setIsLoading(true);
-    setHasError(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   }, [presignedUrl]);
 
   const handleLoadedMetadata = useCallback(() => {

@@ -14,13 +14,12 @@ export default function JoinContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) {
-      setError('No invite token provided');
-      setLoading(false);
-      return;
-    }
-
     async function validate() {
+      if (!token) {
+        setError('No invite token provided');
+        setLoading(false);
+        return;
+      }
       try {
         const result = await validateInvite(token);
         setInvite(result);
@@ -65,9 +64,9 @@ export default function JoinContent() {
     <div className={styles.authPage}>
       <div className={styles.authCard}>
         <div className={styles.authHeader}>
-          <h1>You're Invited! 🎉</h1>
+          <h1>You&apos;re Invited! 🎉</h1>
           <p>
-            You've been invited to join EnglishX.
+            You&apos;ve been invited to join EnglishX.
             {invite?.email && <><br />Email: <strong>{invite.email}</strong></>}
           </p>
         </div>

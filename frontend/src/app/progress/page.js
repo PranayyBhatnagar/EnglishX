@@ -316,12 +316,12 @@ export default function ProgressPage() {
             </div>
           ) : (
             <div className={styles.sessionTimeline}>
-              {sessions.map((session) => {
+              {sessions.map((session, idx) => {
                 const isExpanded = expandedSessions[session.id] && !expandedSessions[session.id].collapsed;
                 const details = expandedSessions[session.id];
 
                 return (
-                  <div key={session.id} className={`card ${styles.sessionCardItem} ${isExpanded ? styles.expandedCardItem : ''}`}>
+                  <div key={`${session.id}-${idx}`} className={`card ${styles.sessionCardItem} ${isExpanded ? styles.expandedCardItem : ''}`}>
                     {/* Top Brief Header */}
                     <div className={styles.sessionOverview} onClick={() => toggleSession(session.id)}>
                       <div className={styles.sessionLeft}>
@@ -428,41 +428,58 @@ export default function ProgressPage() {
                               )}
                             </div>
 
-                            {/* Right Pane: Turn-by-Turn Transcript and Playback */}
+                            {/* Right Pane: Turn-by-Turn Transcript and Dual-Sided Audio Playback */}
                             <div className={styles.transcriptPane}>
-                              <h5>🎙 Transcript & Audio Playback</h5>
+                              <h5>🎙 Conversation Transcript & Spoken Audio</h5>
                               <div className={styles.transcriptList}>
                                 {session.transcript && Array.isArray(session.transcript) && session.transcript.length > 0 ? (
-                                  session.transcript.map((turn, i) => {
-                                    if (turn.role !== 'user') return null;
-                                    const turnIndex = Math.floor(i / 2);
-                                    const audioTurn = (details.audio || []).find(a => a.turnIndex === turnIndex);
-                                    const aiResponse = session.transcript[i + 1];
+                                  (() => {
+                                    const audioList = details.audio || [];
+                                    let userTurnCounter = 1;
+                                    let agentTurnCounter = 0;
 
-                                    return (
-                                      <div key={i} className={styles.turnBlock}>
-                                        <div className={styles.turnUserHeader}>
-                                          <span className={styles.turnLabel}>Turn {turnIndex + 1}</span>
-                                          {audioTurn && audioTurn.presignedUrl ? (
-                                            <div className={styles.playerWrapper}>
-                                              <AudioPlayer presignedUrl={audioTurn.presignedUrl} compact />
+                                    return session.transcript.map((msg, i) => {
+                                      const isUser = msg.role === 'user';
+                                      let audioTurn = null;
+
+                                      if (isUser) {
+                                        audioTurn = audioList.find(a => (a.role === 'user' || !a.role) && a.turnIndex === userTurnCounter);
+                                        userTurnCounter++;
+                                      } else {
+                                        audioTurn = audioList.find(a => a.role === 'agent' && a.turnIndex === agentTurnCounter);
+                                        if (!audioTurn && agentTurnCounter === 0) {
+                                          audioTurn = audioList.find(a => a.role === 'agent' && a.turnIndex === 0);
+                                        }
+                                        agentTurnCounter++;
+                                      }
+
+                                      return (
+                                        <div
+                                          key={i}
+                                          className={`${styles.turnBlock} ${isUser ? styles.userTurnBlock : styles.aiTurnBlock}`}
+                                        >
+                                          <div className={styles.turnUserHeader}>
+                                            <div className={styles.speakerTag}>
+                                              <span className={styles.speakerIcon}>{isUser ? '👤' : '✦'}</span>
+                                              <span className={isUser ? styles.userNameLabel : styles.aiNameLabel}>
+                                                {isUser ? 'Learner' : 'AI Coach'}
+                                              </span>
                                             </div>
-                                          ) : (
-                                            <span className={styles.noAudioBadge}>No recording</span>
-                                          )}
-                                        </div>
-                                        <p className={styles.turnText}>&quot;{turn.content}&quot;</p>
-                                        
-                                        {/* AI response matching this turn */}
-                                        {aiResponse && aiResponse.role === 'ai' && (
-                                          <div className={styles.aiReplyBlock}>
-                                            <span className={styles.aiReplyLabel}>AI Coach</span>
-                                            <p className={styles.aiReplyText}>{aiResponse.content}</p>
+                                            {audioTurn && audioTurn.presignedUrl ? (
+                                              <div className={styles.playerWrapper}>
+                                                <AudioPlayer presignedUrl={audioTurn.presignedUrl} compact />
+                                              </div>
+                                            ) : (
+                                              <span className={styles.noAudioBadge}>Text only</span>
+                                            )}
                                           </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })
+                                          <p className={isUser ? styles.turnText : styles.aiReplyText}>
+                                            &quot;{msg.content}&quot;
+                                          </p>
+                                        </div>
+                                      );
+                                    });
+                                  })()
                                 ) : (
                                   <p className="text-secondary">No transcripts recorded for this session.</p>
                                 )}

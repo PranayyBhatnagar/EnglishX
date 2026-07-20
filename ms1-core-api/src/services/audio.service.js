@@ -37,10 +37,11 @@ const audioService = {
     const client = getS3Client();
     if (!client) return null;
     try {
+      const contentType = s3Key.endsWith('.mp3') ? 'audio/mpeg' : 'audio/webm';
       const command = new GetObjectCommand({
         Bucket: config.aws.s3Bucket,
         Key: s3Key,
-        ResponseContentType: 'audio/webm',
+        ResponseContentType: contentType,
         ResponseContentDisposition: 'inline',
       });
       const url = await getSignedUrl(client, command, { expiresIn: 3600 });
@@ -52,16 +53,17 @@ const audioService = {
   },
 
   /**
-   * Batch-generate presigned URLs for an array of { turnIndex, s3Key } objects.
-   * Returns an array of { turnIndex, presignedUrl } — entries where URL generation
+   * Batch-generate presigned URLs for an array of { turnIndex, s3Key, role } objects.
+   * Returns an array of { turnIndex, s3Key, role, presignedUrl } — entries where URL generation
    * failed have presignedUrl: null.
    */
   async getSessionAudioUrls(audioKeys) {
     if (!Array.isArray(audioKeys) || audioKeys.length === 0) return [];
     const results = await Promise.all(
-      audioKeys.map(async ({ turnIndex, s3Key }) => ({
+      audioKeys.map(async ({ turnIndex, s3Key, role }) => ({
         turnIndex,
         s3Key,
+        role: role || 'user',
         presignedUrl: await audioService.getPresignedUrl(s3Key),
       }))
     );

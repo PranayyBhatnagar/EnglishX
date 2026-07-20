@@ -142,7 +142,7 @@ export default function SignupContent() {
           </form>
 
           <p className={styles.authFooter} style={{ marginTop: '16px' }}>
-            Didn't receive the code?{' '}
+            Didn&apos;t receive the code?{' '}
             <button
               className="link-btn"
               style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0 }}

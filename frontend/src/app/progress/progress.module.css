@@ -446,6 +446,42 @@
   padding: var(--space-4);
 }
 
+.userTurnBlock {
+  border-left: 3px solid var(--primary-500);
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.aiTurnBlock {
+  border-left: 3px solid #6366f1;
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.speakerTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.speakerIcon {
+  font-size: 0.9rem;
+}
+
+.userNameLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-400);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aiNameLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .turnUserHeader {
   display: flex;
   justify-content: space-between;
@@ -476,7 +512,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-primary);
-  margin: 0 0 var(--space-3) 0;
+  margin: 0;
   line-height: 1.4;
 }
 
@@ -494,10 +530,10 @@
 }
 
 .aiReplyText {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   line-height: 1.4;
   color: var(--text-secondary);
-  margin: 2px 0 0 0;
+  margin: 0;
 }
 
 .emptyState {

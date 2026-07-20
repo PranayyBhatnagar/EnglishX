@@ -202,10 +202,10 @@ export async function getSessionAudio(token, sessionId) {
  * Register an S3 audio key for a turn in ms1.
  * Called after processTurn returns an audio_s3_key.
  */
-export async function registerAudioKey(token, sessionId, turnIndex, s3Key) {
+export async function registerAudioKey(token, sessionId, turnIndex, s3Key, role = 'user') {
   return request(`${API_BASE}/sessions/${sessionId}/audio-key`, {
     method: 'POST',
     headers: getHeaders(token),
-    body: JSON.stringify({ turnIndex, s3Key }),
+    body: JSON.stringify({ turnIndex, s3Key, role }),
   });
 }

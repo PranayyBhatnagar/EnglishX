@@ -69,7 +69,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className={styles.feedbackTip}>
-                  💡 <strong>"buyed"</strong> → <strong>"bought"</strong> — irregular past tense
+                  💡 <strong>&quot;buyed&quot;</strong> → <strong>&quot;bought&quot;</strong> — irregular past tense
                 </div>
               </div>
             </div>

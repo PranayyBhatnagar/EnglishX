@@ -93,7 +93,7 @@ export default function LoginPage() {
         </form>
 
         <p className={styles.authFooter}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/signup">Create one</Link>
         </p>
       </div>
