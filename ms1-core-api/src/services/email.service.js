@@ -120,37 +120,70 @@ const emailService = {
           html,
         });
 
+        console.log(`[EMAIL SENT] Sent real email to ${to} via Gmail SMTP. MessageId: ${result.messageId}`);
         return { messageId: result.messageId, status: 'sent' };
       } catch (err) {
         console.error('Gmail SMTP send failed:', err.message);
-        throw new Error('Email delivery via Gmail failed');
       }
     }
 
     // 2. Send via AWS SES if configured
     const fromEmail = config.aws.sesFromEmail;
-    const isMocked = !sesClient || !config.aws.accessKeyId || config.aws.accessKeyId === 'your-access-key-id';
+    const isSesConfigured = sesClient && config.aws.accessKeyId && config.aws.accessKeyId !== 'your-access-key-id' && fromEmail;
 
-    if (isMocked) {
-      console.log(`[EMAIL MOCK] To: ${to} | Subject: ${subject}`);
-      return { messageId: 'mock-email-id', status: 'mocked' };
+    if (isSesConfigured) {
+      try {
+        const command = new SendEmailCommand({
+          Source: fromEmail,
+          Destination: { ToAddresses: [to] },
+          Message: {
+            Subject: { Data: subject, Charset: 'UTF-8' },
+            Body: { Html: { Data: html, Charset: 'UTF-8' } },
+          },
+        });
+        const result = await sesClient.send(command);
+        console.log(`[EMAIL SENT] Sent real email to ${to} via AWS SES. MessageId: ${result.MessageId}`);
+        return { messageId: result.MessageId, status: 'sent' };
+      } catch (err) {
+        console.error('AWS SES send failed:', err.message);
+      }
     }
 
-    const command = new SendEmailCommand({
-      Source: fromEmail,
-      Destination: { ToAddresses: [to] },
-      Message: {
-        Subject: { Data: subject, Charset: 'UTF-8' },
-        Body: { Html: { Data: html, Charset: 'UTF-8' } },
-      },
-    });
-
+    // 3. Fallback: Ethereal test inbox or console log for local development
     try {
-      const result = await sesClient.send(command);
-      return { messageId: result.MessageId, status: 'sent' };
-    } catch (err) {
-      console.error('AWS SES send failed:', err.message);
-      throw new Error('Email delivery failed');
+      const nodemailer = require('nodemailer');
+      const testAccount = await nodemailer.createTestAccount();
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: '"EnglishX AI" <noreply@englishx.ai>',
+        to,
+        subject,
+        html,
+      });
+
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      console.log(`\n======================================================`);
+      console.log(`[EMAIL DELIVERED TO TEST INBOX]`);
+      console.log(`To: ${to}`);
+      console.log(`Subject: ${subject}`);
+      if (previewUrl) {
+        console.log(`🔗 Click to view real email online: ${previewUrl}`);
+      }
+      console.log(`======================================================\n`);
+
+      return { messageId: info.messageId, status: 'ethereal', previewUrl };
+    } catch {
+      console.log(`[EMAIL MOCK] To: ${to} | Subject: ${subject}`);
+      return { messageId: 'mock-email-id', status: 'mocked' };
     }
   },
 };

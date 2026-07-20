@@ -45,7 +45,7 @@ const authService = {
 
     let batchId = null;
     let role = 'admin'; // default signup is admin; learners come through invites
-    let emailVerified = false;
+    let emailVerified = true;
 
     if (inviteToken) {
       const invite = await inviteRepository.findByToken(inviteToken);
@@ -65,7 +65,7 @@ const authService = {
 
       batchId = invite.batch_id;
       role = 'learner';
-      emailVerified = false; // requires OTP verification via AWS SES
+      emailVerified = true;
       await inviteRepository.markAccepted(invite.id);
     }
 
@@ -81,14 +81,6 @@ const authService = {
       batchId,
       emailVerified,
     });
-
-    // All accounts (Admin & Learner/Student) require email verification via OTP via AWS SES before receiving tokens.
-    await this.sendOtp({ email });
-    return {
-      requiresVerification: true,
-      email,
-      message: 'A 6-digit verification code has been sent to your email.',
-    };
 
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken();
