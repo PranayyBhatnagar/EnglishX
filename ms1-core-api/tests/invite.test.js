@@ -189,12 +189,9 @@ describe('POST /api/auth/signup with invite token', () => {
       });
 
     expect(res.status).toBe(201);
-    // Learner invite-based signup skips OTP — tokens issued immediately
-    expect(res.body.requiresVerification).toBeUndefined();
-    expect(res.body.accessToken).toBeDefined();
-    expect(res.body.refreshToken).toBeDefined();
-    expect(res.body.user.role).toBe('learner');
-    expect(res.body.user.batchId).toBe(batchId);
+    // Learner signup now requires OTP verification before receiving tokens
+    expect(res.body.requiresVerification).toBe(true);
+    expect(res.body.email).toBe('newlearner@example.com');
 
     // Verify invite is now marked accepted
     const invite = getStores()._invites.find(i => i.token === inviteToken);

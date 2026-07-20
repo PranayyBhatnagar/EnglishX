@@ -29,12 +29,13 @@ describe('POST /api/auth/signup', () => {
   });
 
   it('student / learner signup also triggers OTP verification flow', async () => {
-    // Invite token for a batch
     const { getStores } = require('./setup');
+    const { v4: uuidv4 } = require('uuid');
     const { _invites } = getStores();
+    const batchId = uuidv4();
     _invites.push({
-      id: 'inv-1',
-      batch_id: 'b-1',
+      id: uuidv4(),
+      batch_id: batchId,
       email: 'student@zenith.com',
       token: 'valid-invite-token',
       status: 'pending',
