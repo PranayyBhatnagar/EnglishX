@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
   async function signup({ name, email, password, inviteToken }) {
     const result = await apiSignup({ name, email, password, inviteToken });
     saveAuth(result.accessToken, result.refreshToken, result.user);
-    return result.user;
+    return result;
   }
 
   function logout() {

@@ -10,7 +10,9 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js"],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
     "testTimeout": 10000,
     "verbose": true
   },
@@ -30,6 +32,7 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.11.0",
+    "nodemailer": "^9.0.3",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.22.0",

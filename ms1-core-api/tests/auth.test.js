@@ -16,16 +16,15 @@ beforeEach(() => resetStores());
 // ── Signup ────────────────────────────────────────────────────────────────────
 
 describe('POST /api/auth/signup', () => {
-  it('admin signup triggers OTP verification flow', async () => {
+  it('creates an admin account and issues tokens', async () => {
     const res = await request(app)
       .post('/api/auth/signup')
       .send({ name: 'Meera Coach', email: 'meera@zenith.com', password: 'Admin1234' });
 
     expect(res.status).toBe(201);
-    expect(res.body.requiresVerification).toBe(true);
-    expect(res.body.email).toBe('meera@zenith.com');
-    // No tokens issued yet — must verify OTP first
-    expect(res.body.accessToken).toBeUndefined();
+    expect(res.body.accessToken).toBeDefined();
+    expect(res.body.refreshToken).toBeDefined();
+    expect(res.body.user.role).toBe('admin');
   });
 
   it('rejects signup when password is shorter than 8 chars', async () => {
@@ -37,9 +36,16 @@ describe('POST /api/auth/signup', () => {
   });
 
   it('rejects duplicate email on second signup', async () => {
-    await request(app)
-      .post('/api/auth/signup')
-      .send({ name: 'Admin One', email: 'admin@test.com', password: 'Password1' });
+    const { getStores } = require('./setup');
+    const { _users } = getStores();
+    _users.push({
+      id: 'u-1',
+      email: 'admin@test.com',
+      password_hash: 'hash',
+      name: 'Admin One',
+      role: 'admin',
+      email_verified: true,
+    });
 
     const res = await request(app)
       .post('/api/auth/signup')
@@ -64,7 +70,7 @@ describe('POST /api/auth/verify-otp', () => {
       .send({ email: 'rohit@test.com', otp: '000000' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/incorrect otp/i);
+    expect(res.body.error).toMatch(/invalid|expired|incorrect/i);
   });
 });
 

@@ -24,6 +24,11 @@ const config = {
     s3Bucket: process.env.AWS_S3_BUCKET || '',
   },
 
+  smtp: {
+    user: process.env.SMTP_USER || process.env.GMAIL_USER || '',
+    pass: process.env.SMTP_PASS || process.env.GMAIL_APP_PASS || '',
+  },
+
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
