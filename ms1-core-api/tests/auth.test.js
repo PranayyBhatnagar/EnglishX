@@ -28,6 +28,34 @@ describe('POST /api/auth/signup', () => {
     expect(res.body.accessToken).toBeUndefined();
   });
 
+  it('student / learner signup also triggers OTP verification flow', async () => {
+    // Invite token for a batch
+    const { getStores } = require('./setup');
+    const { _invites } = getStores();
+    _invites.push({
+      id: 'inv-1',
+      batch_id: 'b-1',
+      email: 'student@zenith.com',
+      token: 'valid-invite-token',
+      status: 'pending',
+      expires_at: new Date(Date.now() + 86400000).toISOString(),
+    });
+
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({
+        name: 'Student User',
+        email: 'student@zenith.com',
+        password: 'StudentPass123',
+        inviteToken: 'valid-invite-token',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.requiresVerification).toBe(true);
+    expect(res.body.email).toBe('student@zenith.com');
+    expect(res.body.accessToken).toBeUndefined();
+  });
+
   it('rejects signup when password is shorter than 8 chars', async () => {
     const res = await request(app)
       .post('/api/auth/signup')

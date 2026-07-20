@@ -65,7 +65,7 @@ const authService = {
 
       batchId = invite.batch_id;
       role = 'learner';
-      emailVerified = true; // invite email is already verified by the admin
+      emailVerified = false; // requires OTP verification via AWS SES
       await inviteRepository.markAccepted(invite.id);
     }
 
@@ -82,16 +82,13 @@ const authService = {
       emailVerified,
     });
 
-    // Admin accounts require email verification via OTP before receiving tokens.
-    // Learner accounts (invite-based) skip OTP — the invite itself verifies email ownership.
-    if (role === 'admin') {
-      await this.sendOtp({ email });
-      return {
-        requiresVerification: true,
-        email,
-        message: 'A 6-digit verification code has been sent to your email.',
-      };
-    }
+    // All accounts (Admin & Learner/Student) require email verification via OTP via AWS SES before receiving tokens.
+    await this.sendOtp({ email });
+    return {
+      requiresVerification: true,
+      email,
+      message: 'A 6-digit verification code has been sent to your email.',
+    };
 
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken();

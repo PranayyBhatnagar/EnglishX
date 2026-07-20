@@ -81,7 +81,7 @@ export default function SignupContent() {
         localStorage.setItem('refreshToken', result.refreshToken);
         localStorage.setItem('user', JSON.stringify(result.user));
       }
-      router.push('/admin');
+      router.push(result.user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.message || 'Verification failed');
       setOtp(['', '', '', '', '', '']);
