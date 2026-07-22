@@ -6,14 +6,26 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   async rewrites() {
-    const ms1Url = process.env.MS1_URL || process.env.NEXT_PUBLIC_MS1_URL || 'http://localhost:3001';
-    const ms2Url = process.env.MS2_URL || process.env.NEXT_PUBLIC_MS2_URL || 'http://localhost:8000';
+    // In production (Vercel), route all backend calls to the EC2 HTTPS endpoint.
+    // In local dev, fall back to localhost ports.
+    const ms1Url =
+      process.env.MS1_URL ||
+      process.env.NEXT_PUBLIC_MS1_URL ||
+      'https://englishx.duckdns.org';
+
+    const ms2Url =
+      process.env.MS2_URL ||
+      process.env.NEXT_PUBLIC_MS2_URL ||
+      'https://englishx.duckdns.org';
+
     return [
       {
+        // All /api/* calls → ms1-core-api via NGINX
         source: '/api/:path*',
         destination: `${ms1Url}/api/:path*`,
       },
       {
+        // All /speech/* calls → ms2-speech-agent via NGINX
         source: '/speech/:path*',
         destination: `${ms2Url}/speech/:path*`,
       },
@@ -22,4 +34,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-

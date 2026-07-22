@@ -30,6 +30,8 @@ EnglishX/ (monorepo)
 | Cloud | AWS EC2, HTTPS via Certbot / Let's Encrypt |
 | Rate Limiting | express-rate-limit (auth: 10/15min, api: 100/15min) |
 | API Docs | Swagger UI at `/api/docs` |
+| Domain | DuckDNS — `englishx.duckdns.org` → EC2 `13.233.95.32` |
+| Frontend Hosting | Vercel |
 
 ## Quick Start (Local Development)
 
@@ -69,7 +71,10 @@ cd infra
 docker compose up --build
 ```
 
-Services: ms1 (port 3001), ms2 (port 8000), frontend (port 3000), NGINX (port 80).
+Services: ms1 (port 3001), ms2 (port 8000), NGINX (port 80/443).
+The Next.js frontend is NOT included in Docker — it runs on Vercel.
+
+Local backend access: http://localhost/api/health
 
 ### 4. Or run services individually
 
@@ -109,22 +114,28 @@ Swagger UI is available at `http://localhost/api/docs` when the stack is running
    AWS_REGION=ap-south-1
    AWS_ACCESS_KEY_ID=...
    AWS_SECRET_ACCESS_KEY=...
-   AWS_SES_FROM_EMAIL=noreply@yourdomain.com
+   AWS_SES_FROM_EMAIL=valuedrocks@gmail.com
    ```
 
 ## Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials
 2. Create an OAuth 2.0 Client ID (Web application)
-3. Add authorised redirect URI: `https://yourdomain.com/api/auth/google/callback`
+3. Add authorised redirect URI: `https://englishx.duckdns.org/api/auth/google/callback`
 4. Add to `ms1-core-api/.env`:
    ```
    GOOGLE_CLIENT_ID=...
    GOOGLE_CLIENT_SECRET=...
-   GOOGLE_CALLBACK_URL=https://yourdomain.com/api/auth/google/callback
+   GOOGLE_CALLBACK_URL=https://englishx.duckdns.org/api/auth/google/callback
    ```
 
-## EC2 + HTTPS Deployment
+## EC2 + HTTPS Deployment (englishx.duckdns.org)
+
+### Infrastructure Summary
+- **EC2**: `13.233.95.32` — runs ms1, ms2, NGINX via Docker Compose
+- **Domain**: `englishx.duckdns.org` (DuckDNS A-record → EC2 IP)
+- **SSL**: Let's Encrypt via Certbot (webroot challenge on port 80)
+- **Frontend**: Vercel — Next.js app calls `https://englishx.duckdns.org`
 
 ### Prerequisites on EC2
 
@@ -139,18 +150,26 @@ sudo usermod -aG docker ubuntu
 git clone https://github.com/yashraj-g/EnglishX.git ~/EnglishX
 cd ~/EnglishX
 
-# Set your domain
-export DOMAIN=yourdomain.com
-export CERTBOT_EMAIL=admin@yourdomain.com
-
+# DuckDNS domain and email are hardcoded in infra/deploy.sh
 bash infra/deploy.sh
 ```
 
 The deploy script will:
 1. Pull the latest code
-2. Build and start all Docker services
-3. Issue a Let's Encrypt SSL certificate via Certbot
-4. Swap in the production NGINX config with HTTPS
+2. Build and start ms1 + ms2 + NGINX containers (no frontend — it's on Vercel)
+3. Issue a Let's Encrypt SSL certificate via Certbot (webroot challenge)
+4. Copy `nginx-prod.conf` → `nginx.conf` and reload NGINX with HTTPS
+5. On subsequent runs, auto-renew the cert if it's due (valid 90 days)
+
+### Vercel Frontend Setup
+
+1. Import the repo in Vercel and set **Root Directory** to `frontend`
+2. Add these environment variables in Vercel dashboard:
+   ```
+   MS1_URL=https://englishx.duckdns.org
+   MS2_URL=https://englishx.duckdns.org
+   ```
+3. Redeploy — the frontend will now proxy `/api/*` and `/speech/*` through Vercel rewrites to the EC2 HTTPS endpoints.
 
 ### CI/CD GitHub Secrets Required
 
@@ -160,7 +179,7 @@ Set these in GitHub → Settings → Secrets & Variables → Actions:
 |--------|-------------|
 | `DOCKERHUB_USERNAME` | Docker Hub username |
 | `DOCKERHUB_TOKEN` | Docker Hub access token |
-| `EC2_HOST` | EC2 public IP or domain |
+| `EC2_HOST` | `13.233.95.32` or `englishx.duckdns.org` |
 | `EC2_USERNAME` | SSH user (e.g. `ubuntu`) |
 | `EC2_SSH_KEY` | EC2 private key (PEM, entire content) |
 
