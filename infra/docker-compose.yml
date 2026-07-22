@@ -9,10 +9,11 @@ services:
       - ../ms1-core-api/.env
     environment:
       - PORT=3001
-      - NODE_ENV=development
+      - NODE_ENV=production
       - NODE_OPTIONS=--dns-result-order=ipv4first
       - MS2_BASE_URL=http://ms2-speech-agent:8000
-      - FRONTEND_URL=http://localhost:3000
+      # Vercel frontend URL — CORS origin and invite link base
+      - FRONTEND_URL=https://englishx.vercel.app
     restart: unless-stopped
 
   # ms2 — Speech Agent (FastAPI + LangGraph)
@@ -27,23 +28,8 @@ services:
       - MS1_BASE_URL=http://ms1-core-api:3001
     restart: unless-stopped
 
-  # Next.js Frontend
-  frontend:
-    build:
-      context: ../frontend
-      args:
-        - MS1_URL=http://ms1-core-api:3001
-        - MS2_URL=http://ms2-speech-agent:8000
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - HOSTNAME=0.0.0.0
-      - MS1_URL=http://ms1-core-api:3001
-      - MS2_URL=http://ms2-speech-agent:8000
-    restart: unless-stopped
-
-  # NGINX Reverse Proxy
+  # NGINX Reverse Proxy — TLS termination + routing to ms1 & ms2
+  # The Next.js frontend is hosted on Vercel; this EC2 only serves /api/* and /speech/*
   nginx:
     image: nginx:alpine
     ports:
@@ -56,10 +42,9 @@ services:
     depends_on:
       - ms1-core-api
       - ms2-speech-agent
-      - frontend
     restart: unless-stopped
 
-  # Certbot — SSL certificate management (production only; runs then exits)
+  # Certbot — automatic SSL certificate renewal (production only; run then sleep)
   certbot:
     image: certbot/certbot:latest
     profiles:
