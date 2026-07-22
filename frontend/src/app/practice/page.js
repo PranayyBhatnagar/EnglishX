@@ -25,7 +25,6 @@ export default function PracticePage() {
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [processing, setProcessing] = useState(false);
-  const [textInput, setTextInput] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [sessionStart, setSessionStart] = useState(null);
   const [wordConfidences, setWordConfidences] = useState([]);
@@ -124,47 +123,6 @@ export default function PracticePage() {
       setMessages(prev => [
         ...prev,
         { role: 'user', content: result.user_transcript, word_confidences: result.word_confidences },
-        { role: 'ai', content: result.ai_reply },
-      ]);
-
-      speak(result.ai_reply);
-    } catch (err) {
-      console.error('Turn failed:', err);
-    }
-    setProcessing(false);
-  }
-
-  async function handleSendText(e) {
-    e.preventDefault();
-    if (!textInput.trim()) return;
-    const text = textInput;
-    setTextInput('');
-    setProcessing(true);
-
-    try {
-      const result = await processTurn({
-        sessionId,
-        textInput: text,
-        mode: selectedMode,
-        learnerLevel: user?.overallLevel || 2,
-        conversationHistory: messages.map(m => ({
-          role: m.role === 'ai' ? 'ai' : 'user',
-          content: m.content,
-        })),
-        userId: user?.id,
-        turnIndex: turnCountRef.current,
-      });
-
-      if (result.agent_audio_s3_key) {
-        registerAudioKey(token, sessionId, turnCountRef.current, result.agent_audio_s3_key, 'agent').catch(
-          (err) => console.warn('Failed to register agent audio key:', err)
-        );
-      }
-      turnCountRef.current += 1;
-
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content: text },
         { role: 'ai', content: result.ai_reply },
       ]);
 
@@ -462,38 +420,101 @@ export default function PracticePage() {
           <div ref={chatEndRef} />
         </div>
 
-        {/* Input area */}
+        {/* Input area - Voice Only Mode */}
         <div className={styles.inputArea}>
           {micError && <div className={styles.micError}>{micError}</div>}
-          <div className={styles.inputRow}>
-            <button
-              className={`btn btn-icon ${isRecording ? styles.recordingBtn : styles.micBtn}`}
-              onClick={isRecording ? handleSendAudio : startRecording}
-              disabled={processing}
-              title={isRecording ? 'Stop & send' : 'Hold to speak'}
-            >
-              {isRecording ? '⏹' : '🎤'}
-            </button>
-            {isRecording && (
-              <div className={styles.recordingIndicator}>
-                <span className={styles.recordingDot} />
-                Recording... tap to send
-              </div>
-            )}
-            {!isRecording && (
-              <form className={styles.textForm} onSubmit={handleSendText}>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Or type your message..."
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
+          <div className={styles.inputRow} style={{ justifyContent: 'center', alignItems: 'center', gap: '16px' }}>
+            {isRecording ? (
+              <>
+                <button
+                  className={`btn btn-icon ${styles.recordingBtn}`}
+                  onClick={handleSendAudio}
                   disabled={processing}
-                />
-                <button type="submit" className="btn btn-primary btn-sm" disabled={processing || !textInput.trim()}>
-                  Send
+                  title="Stop & send audio to AI"
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    fontSize: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 20px rgba(239, 68, 68, 0.6)',
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⏹
                 </button>
-              </form>
+
+                <button
+                  type="button"
+                  onClick={cancelRecording}
+                  title="Cancel and discard audio"
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    fontSize: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#f87171',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                    e.currentTarget.style.borderColor = '#ef4444';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  }}
+                >
+                  ✕
+                </button>
+
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div className={styles.recordingIndicator}>
+                    <span className={styles.recordingDot} />
+                    <strong style={{ color: '#ffffff', fontSize: '15px' }}>Recording...</strong>
+                    <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block' }}>Tap ⏹ to Send | Tap ✕ to Cancel</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  className={`btn btn-icon ${styles.micBtn}`}
+                  onClick={startRecording}
+                  disabled={processing}
+                  title="Tap microphone to speak"
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    fontSize: '26px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)',
+                    cursor: processing ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  🎤
+                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div>
+                    <strong style={{ color: '#ffffff', fontSize: '15px', display: 'block' }}>{processing ? 'AI is processing...' : 'Voice-only Practice'}</strong>
+                    <span style={{ fontSize: '13px', color: '#94a3b8', display: 'block' }}>{processing ? 'Please wait a moment' : 'Tap 🎤 microphone button to start speaking'}</span>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
