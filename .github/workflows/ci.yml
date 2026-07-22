@@ -54,7 +54,7 @@ jobs:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: [ms1-lint-test, ms2-lint-test, frontend-lint-test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != ''
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_USERNAME != null }}
     steps:
       - uses: actions/checkout@v4
 
@@ -101,8 +101,8 @@ jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    needs: docker-build-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.EC2_HOST != ''
+    needs: [ms1-lint-test, ms2-lint-test, frontend-lint-test]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.EC2_HOST != '' && secrets.EC2_HOST != null }}
     steps:
       - uses: actions/checkout@v4
 
